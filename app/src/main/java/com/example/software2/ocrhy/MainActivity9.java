@@ -2,13 +2,14 @@ package com.example.software2.ocrhy;
 
 import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
 
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -49,13 +50,17 @@ import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
 
+import com.google.ai.client.generativeai.GenerativeModel;
+import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import com.google.ai.client.generativeai.type.Content;
+import com.google.ai.client.generativeai.type.GenerateContentResponse;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 import android.speech.tts.TextToSpeech;
 
 public class MainActivity9 extends AppCompatActivity {
-    //RecyclerView recyclerView;
-    //TextView welcomeTextView;
-    //EditText messageEditText;
-    //ImageButton sendButton;
     List<Message> messageList;
     private static final int REQ_CODE_SPEECH_INPUT = 100;
     MessageAdapter messageAdapter;
@@ -67,17 +72,16 @@ public class MainActivity9 extends AppCompatActivity {
     private String tmp;
     private static TextToSpeech textToSpeech;
 
-    private static final int CLICK_INTERVAL = 1000; // Thời gian giữa các lần nhấn (ms)
-    private static final int NUM_CLICKS_TO_EXIT = 3; // Số lần nhấn để thoát ứng dụng
-    private int numClicks = 0; // Biến đếm số lần nhấn
-    private long lastClickTime = 0; // Thời gian của lần nhấn cuối cùng
+    private static final int CLICK_INTERVAL = 1000;
+    private static final int NUM_CLICKS_TO_EXIT = 3;
+    private int numClicks = 0;
+    private long lastClickTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main9);
         messageList = new ArrayList<>();
-
 
         mVoiceInputTv = findViewById(R.id.voiceInput);
 
@@ -90,7 +94,6 @@ public class MainActivity9 extends AppCompatActivity {
             }
         });
 
-
         TranslatorOptions options =
                 new TranslatorOptions.Builder()
                         .setSourceLanguage(TranslateLanguage.ENGLISH)
@@ -101,62 +104,13 @@ public class MainActivity9 extends AppCompatActivity {
                 Translation.getClient(options);
 
         englishVietnameseTranslator.downloadModelIfNeeded()
-                .addOnSuccessListener(v -> {
-                    // Mô hình dịch đã được tải xong hoặc đã có sẵn
-                    Log.d(TAG, "Model has been downloaded or already available");
+                .addOnSuccessListener(v -> Log.d(TAG, "done"))
+                .addOnFailureListener(e -> Log.e(TAG, "Error down: " + e.getMessage()));
 
-                    // Tiếp tục với việc sử dụng Translator
-                })
-                .addOnFailureListener(e -> {
-                    // Lỗi khi tải mô hình
-                    Log.e(TAG, "Error downloading translation model: " + e.getMessage());
-                });
-
-        TranslatorOptions options2 =
-                new TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.VIETNAMESE)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
-                        .build();
-
-        final Translator vietnameseEnglishTranslator =
-                Translation.getClient(options2);
-
-        vietnameseEnglishTranslator.downloadModelIfNeeded()
-                .addOnSuccessListener(v -> {
-                    // Mô hình dịch đã được tải xong hoặc đã có sẵn
-                    Log.d(TAG, "Model has been downloaded or already available");
-
-                    // Tiếp tục với việc sử dụng Translator
-                })
-                .addOnFailureListener(e -> {
-                    // Lỗi khi tải mô hình
-                    Log.e(TAG, "Error downloading translation model: " + e.getMessage());
-                });
-        /*
-        recyclerView = findViewById(R.id.recycler_view);
-        welcomeTextView = findViewById(R.id.welcome_text);
-        messageEditText = findViewById(R.id.message_edit_text);
-        sendButton = findViewById(R.id.send_btn);
-
-        messageEditText.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        messageEditText.setRawInputType(EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        */
-        // Thiết lập RecyclerView
         messageAdapter = new MessageAdapter(messageList);
-        //recyclerView.setAdapter(messageAdapter);
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setStackFromEnd(true);
-        //recyclerView.setLayoutManager(llm);
-
-        /* sendButton.setOnClickListener((v) -> {
-            String question = messageEditText.getText().toString().trim();
-            addToChat(question, Message.SENT_BY_ME);
-            messageEditText.setText("");
-            callAPI(question);
-            welcomeTextView.setVisibility(View.GONE);
-        });
-        */
     }
 
     public boolean onTouchEvent(MotionEvent touchEvent) {
@@ -169,11 +123,11 @@ public class MainActivity9 extends AppCompatActivity {
                 x2 = touchEvent.getX();
                 y2 = touchEvent.getY();
                 if (x1 > x2) {
-                    numClicks=0;
+                    numClicks = 0;
                     startVoiceInput();
                 }
                 if (x1 < x2){
-                    numClicks=0;
+                    numClicks = 0;
                     textToSpeech.speak(tmp, TextToSpeech.QUEUE_FLUSH, null);
                 }
         }
@@ -182,7 +136,6 @@ public class MainActivity9 extends AppCompatActivity {
             if (currentTime - lastClickTime < CLICK_INTERVAL) {
                 numClicks++;
                 if (numClicks >= NUM_CLICKS_TO_EXIT) {
-                    // Trở về MainActivity
                     Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                     startActivity(intent);
                     final Handler handler = new Handler(Looper.getMainLooper());
@@ -207,129 +160,110 @@ public class MainActivity9 extends AppCompatActivity {
             a.printStackTrace();
         }
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_CODE_SPEECH_INPUT) {
             if (resultCode == RESULT_OK && null != data) {
                 ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                mVoiceInputTv.setText(result.get(0));
                 String spokenText = result.get(0);
-                translateText2(spokenText);
+                mVoiceInputTv.setText(spokenText);
+                translateText(spokenText);
             }
         }
     }
+
+
     void addToChat(String message, String sentBy) {
-        runOnUiThread(() -> {
-            //messageList.add(new Message(message, sentBy));
-            //messageAdapter.notifyDataSetChanged();
-            //textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null);
-            //recyclerView.smoothScrollToPosition(messageAdapter.getItemCount());
-        });
+
+        runOnUiThread(() -> {});
     }
 
     void addResponse(String response) {
         runOnUiThread(() -> {
-            //messageList.remove(messageList.size() - 1);
-            //messageList.add(new Message(response, Message.SENT_BY_BOT));
             textToSpeech.speak(response, TextToSpeech.QUEUE_FLUSH, null);
             tmp = response;
-            //addToChat(response, Message.SENT_BY_BOT);
         });
     }
 
-    void callAPI(String question) {
-        // okhttp
-        //messageList.add(new Message("Typing... ", Message.SENT_BY_BOT));
+    public void callGeminiAPI(String spokenText){
+        new GenerateContentTask().execute(spokenText);
+    }
 
-        JSONObject jsonBody = new JSONObject();
-        try {
-            jsonBody.put("model", "gpt-3.5-turbo-instruct");
-            jsonBody.put("prompt", question);
-            jsonBody.put("max_tokens", 4000);
-            jsonBody.put("temperature", 0);
-        } catch (JSONException e) {
-            e.printStackTrace();
+    private class GenerateContentTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... strings) {
+            String spokenText = strings[0];
+            GenerativeModel gm = new GenerativeModel("gemini-pro", "AIzaSyCw0qxIiG64AfbY8AZJL6idROjGnlqde4s");
+            GenerativeModelFutures model = GenerativeModelFutures.from(gm);
+
+            Content content = new Content.Builder()
+                    .addText(spokenText) // Use the recognized text
+                    .build();
+
+            try {
+                GenerateContentResponse result = model.generateContent(content).get();
+                return result.getText();
+            } catch (Exception e) {
+                Log.e(TAG, "chiiuuu: " + e.getMessage());
+                return null;
+            }
         }
-        RequestBody body = RequestBody.create(jsonBody.toString(), JSON);
-        Request request = new Request.Builder()
-                .url("https://api.openai.com/v1/completions")
-                .header("Authorization", "Bearer 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")
-                .post(body)
-                .build();
 
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                addResponse("Không thể tải phản hồi vì " + e.getMessage());
+        @Override
+        protected void onPostExecute(String resultText) {
+            if (resultText != null) {
+                translateText2(resultText);
+            } else {
+                addResponse("error gemini");
             }
-
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    JSONObject jsonObject = null;
-                    try {
-                        jsonObject = new JSONObject(response.body().string());
-                        JSONArray jsonArray = jsonObject.getJSONArray("choices");
-                        String result = jsonArray.getJSONObject(0).getString("text");
-
-                        // Dịch biến result sang tiếng Việt
-                        translateText(result);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                } else {
-                    addResponse("Không thể tải phản hồi vì " + response.body().string());
-                }
-            }
-        });
+        }
     }
 
     void translateText(String textToTranslate) {
         TranslatorOptions options =
                 new TranslatorOptions.Builder()
-                        .setSourceLanguage(TranslateLanguage.ENGLISH)
-                        .setTargetLanguage(TranslateLanguage.VIETNAMESE) // Chọn mã ngôn ngữ cho tiếng Việt
-                        .build();
-
-        final Translator englishVietnameseTranslator =
-                Translation.getClient(options);
-
-        englishVietnameseTranslator.translate(textToTranslate)
-                .addOnSuccessListener(
-                        translatedText -> {
-                            // Xử lý kết quả dịch
-                            addResponse(translatedText.toString());
-                        })
-                .addOnFailureListener(
-                        e -> {
-                            // Xử lý lỗi khi dịch không thành công
-                            addResponse("Lỗi khi dịch: " + e.getMessage());
-                        });
-    }
-    void translateText2(String textToTranslate) {
-        TranslatorOptions options2 =
-                new TranslatorOptions.Builder()
                         .setSourceLanguage(TranslateLanguage.VIETNAMESE)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH) // Chọn mã ngôn ngữ cho tiếng Việt
+                        .setTargetLanguage(TranslateLanguage.ENGLISH)
                         .build();
 
         final Translator vietnamEnglishTranslator =
-                Translation.getClient(options2);
+                Translation.getClient(options);
 
         vietnamEnglishTranslator.translate(textToTranslate)
                 .addOnSuccessListener(
                         translatedText -> {
-                            // Xử lý kết quả dịch
-                            callAPI(translatedText.toString());
+                            callGeminiAPI(translatedText); // Gọi hàm Gemni với văn bản đã dịch sang tiếng Anh
                         })
                 .addOnFailureListener(
                         e -> {
-                            // Xử lý lỗi khi dịch không thành công
-                            addResponse("Lỗi khi dịch: " + e.getMessage());
+                            addResponse("Error translating: " + e.getMessage());
                         });
     }
+
+
+    void translateText2(String textToTranslate) {
+        TranslatorOptions options2 =
+                new TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.ENGLISH)
+                        .setTargetLanguage(TranslateLanguage.VIETNAMESE)
+                        .build();
+
+        final Translator englishVietnameseTranslator =
+                Translation.getClient(options2);
+
+        englishVietnameseTranslator.translate(textToTranslate)
+                .addOnSuccessListener(
+                        translatedText -> {
+                            addResponse(translatedText.toString());
+                        })
+                .addOnFailureListener(
+                        e -> {
+                            addResponse("Error translating: " + e.getMessage());
+                        });
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();

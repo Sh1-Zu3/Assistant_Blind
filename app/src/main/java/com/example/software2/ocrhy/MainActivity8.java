@@ -107,7 +107,7 @@ public class MainActivity8 extends AppCompatActivity {
 
                 String street = address.getThoroughfare(); // Tên đường
                 if (street != null) {
-                    addressInfoBuilder.append("Đường ").append(street).append(", ");
+                    addressInfoBuilder.append("").append(street).append(", ");
                 }
 
                 String ward = address.getSubLocality(); // Xã
