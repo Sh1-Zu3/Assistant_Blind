@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "349969116538",
+    "firebase_url": "https://fourth-gearing-412903-default-rtdb.firebaseio.com",
+    "project_id": "fourth-gearing-412903",
+    "storage_bucket": "fourth-gearing-412903.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:349969116538:android:d91ed6c97c8d867416fac3",
+        "android_client_info": {
+          "package_name": "com.example.mtamm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXdTQMomYaI8wdTS71cwstTVAwiUTZ7Po"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:349969116538:android:a4e16410d78f1fcf16fac3",
+        "android_client_info": {
+          "package_name": "com.example.software2.ocrhy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXdTQMomYaI8wdTS71cwstTVAwiUTZ7Po"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

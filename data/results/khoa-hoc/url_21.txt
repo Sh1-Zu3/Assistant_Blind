@@ -1,0 +1,8 @@
+Robot hình người nhỏ nhất thế giới 
+Nhóm học sinh Hong Kong chế tạo robot hình người cao 14,1 cm, có thể đi bằng hai chân và cử động tay, vai, hông, đầu gối.
+Nhóm 4 học sinh Aaron Ho Yat Fung, Isaac Zachary To, Justin Wang Tou Dương và Ngo Hei Leung tại Trường Nam sinh Diocesan, Hong Kong, chế tạo robot hình người nhỏ nhất từng ghi nhận, IFL Science hôm 16/2 đưa tin. Với chiều cao chỉ 14,1 cm, robot này ngắn hơn 11,3 mm so với robot giữ kỷ lục thế giới cũ do Zain Ahmad Qureshi từ Pakistan chế tạo vào năm 2022.
+Kỷ lục mới đã được tổ chức Kỷ lục Guinness Thế giới (GWR) xác nhận. Để đáp ứng yêu cầu lập kỷ lục, robot phải có khả năng đi bằng hai chân và xoay vai, khuỷu tay, hông, đầu gối.
+Sau khi thiết kế robot với phần mềm do phòng thí nghiệm robot của trường cung cấp, nhóm học sinh chế tạo các phần thân bằng acrylic và những bộ phận in 3D. Sau đó, các động cơ servo do một nhà máy sản xuất theo yêu cầu được lắp vào, giúp robot có thể cử động tay và chân. Robot hình người siêu nhỏ hoạt động nhờ pin lithium-ion 7,4 volt tích hợp và có thể điều khiển từ xa bằng ứng dụng hoặc các nút trên bảng điều khiển sau lưng robot.
+Nhóm học sinh cho biết, robot nhỏ có thể đi bộ, chơi bóng đá, khiêu vũ, thậm chí tập võ. Ngoài việc được ghi vào sách kỷ lục, động lực để nhóm chế tạo robot còn là tạo ra một công cụ học tập chi phí thấp để sử dụng trong giáo dục STEAM (khoa học, công nghệ, kỹ thuật, nghệ thuật và toán học).
+Bằng cách thiết kế robot nhỏ nhất có thể, chi phí sản xuất hàng loạt có thể giảm, nhờ đó khiến robot có giá rẻ hơn và dễ tiếp cận hơn với những gia đình có hoàn cảnh khó khăn. "Nhóm dự định công khai thiết kế và code lập trình để tiếp tục hướng tới mục tiêu thúc đẩy giáo dục STEAM", Isaac cho biết.
+Thu Thảo (Theo IFL Science)

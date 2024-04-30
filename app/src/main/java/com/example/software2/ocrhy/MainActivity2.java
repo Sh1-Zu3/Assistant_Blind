@@ -55,12 +55,16 @@ public class MainActivity2 extends AppCompatActivity {
     private static TextToSpeech textToSpeech;
     private String stringResult = null;
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+    private static final int CLICK_INTERVAL = 1000; // time click ne
+    private static final int NUM_CLICKS_TO_EXIT = 3;
+    private int numClicks = 0;//3 lan out
+    private long lastClickTime = 0; //cnt
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
-        mVoiceInputTv = (TextView) findViewById(R.id.textView);
+        mVoiceInputTv = findViewById(R.id.textView);
         getWindow().getDecorView().setBackgroundColor(Color.WHITE);
         ActivityCompat.requestPermissions(this, new String[]{CAMERA}, PackageManager.PERMISSION_GRANTED);
 
@@ -68,12 +72,13 @@ public class MainActivity2 extends AppCompatActivity {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.getDefault());
                 textToSpeech.setSpeechRate(1f);
-                Toast.makeText(MainActivity2.this, "Vuốt sang trái và nói có để đọc, nói không để quay lại menu chính", Toast.LENGTH_SHORT).show();
-                textToSpeech.speak("Vuốt sang trái và nói có để đọc, nói không để quay lại menu chính", TextToSpeech.QUEUE_ADD, null);
+                Toast.makeText(MainActivity2.this, "Vuốt sang trái để đọc chữ, nhấn 3 lần để trở về menu chính", Toast.LENGTH_SHORT).show();
+                textToSpeech.speak("Vuốt sang trái để đọc chữ, nhấn 3 lần để trở về menu chính", TextToSpeech.QUEUE_ADD, null);
             }
         });
 
-        mVoiceInputTv = (TextView) findViewById(R.id.textView);
+        //bug
+        //textRecognizer();
     }
 
     public boolean onTouchEvent(MotionEvent touchEvent) {
@@ -86,19 +91,43 @@ public class MainActivity2 extends AppCompatActivity {
                 x2 = touchEvent.getX();
                 y2 = touchEvent.getY();
                 if (x1 < x2) {
+                    numClicks=0;
                     textToSpeech.speak(stringResult, TextToSpeech.QUEUE_FLUSH, null);
-                    textToSpeech.speak("Vuốt sang phải để nghe lại. Hoặc vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_ADD, null);
+                    textToSpeech.speak("Vuốt sang phải để nghe lại. Hoặc vuốt sang trái để nhận diện và đọc chữ", TextToSpeech.QUEUE_ADD, null);
                 } else if (x1 > x2) {
-                    startVoiceInput();
+                    numClicks=0;
+                    //startVoiceInput();
+                    setContentView(R.layout.surface);
+                    surfaceView = findViewById(R.id.surfaceView);
+                    surfaceView.setOnClickListener(v -> capture());
+                    textRecognizer();
+                    mVoiceInputTv.setText(null);
+                    //bat camera
                 }
                 break;
+        }
+        if (touchEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_INTERVAL) {
+                numClicks++;
+                if (numClicks >= NUM_CLICKS_TO_EXIT) {
+                    // ve menu chinh
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
+                }
+            } else {
+                numClicks = 1;
+            }
+            lastClickTime = currentTime;
         }
         return false;
     }
 
     private void textRecognizer() {
         Toast.makeText(MainActivity2.this, "Chạm vào màn hình để nghe", Toast.LENGTH_SHORT).show();
-        textToSpeech.speak("Chạm vào màn hình để chụp ảnh văn bản và nghe", TextToSpeech.QUEUE_FLUSH, null);
+        textToSpeech.speak("Chạm vào màn hình để chụp ảnh văn bản và đọc chữ", TextToSpeech.QUEUE_FLUSH, null);
         textRecognizer = new TextRecognizer.Builder(getApplicationContext()).build();
         cameraSource = new CameraSource.Builder(getApplicationContext(), textRecognizer)
                 .setRequestedPreviewSize(1280, 1024)
@@ -106,7 +135,9 @@ public class MainActivity2 extends AppCompatActivity {
                 .build();
         surfaceView = findViewById(R.id.surfaceView);
         final Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(() -> textToSpeech.speak("chạm vào màn hình để đọc", TextToSpeech.QUEUE_FLUSH, null), 5000);
+        handler.postDelayed(() -> textToSpeech.speak(
+                "chạm vào màn hình để đọc",
+                TextToSpeech.QUEUE_FLUSH, null), 5000);
 
         Context context = this;
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
@@ -124,7 +155,7 @@ public class MainActivity2 extends AppCompatActivity {
 
             @Override
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+                // them lam ro net
             }
 
             @Override
@@ -144,7 +175,7 @@ public class MainActivity2 extends AppCompatActivity {
             public void receiveDetections(Detector.Detections<TextBlock> detections) {
                 SparseArray<TextBlock> sparseArray = detections.getDetectedItems();
                 StringBuilder stringBuilder = new StringBuilder();
-
+                //dung thu vien nhan dien
                 for (int i = 0; i < sparseArray.size(); ++i) {
                     TextBlock textBlock = sparseArray.valueAt(i);
                     if (textBlock != null && textBlock.getValue() != null) {
@@ -168,9 +199,9 @@ public class MainActivity2 extends AppCompatActivity {
         textView = findViewById(R.id.textView);
         textView.setText(stringResult);
         textToSpeech.speak(stringResult, TextToSpeech.QUEUE_FLUSH, null);
-        textToSpeech.speak("Vuốt sang phải để nghe lại. Hoặc vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_ADD, null);
+        textToSpeech.speak("Vuốt sang phải để nghe lại. vuốt sang trái để nhận diện và đọc chữ", TextToSpeech.QUEUE_ADD, null);
     }
-
+    //ko xai
     private void startVoiceInput() {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -182,7 +213,7 @@ public class MainActivity2 extends AppCompatActivity {
             a.printStackTrace();
         }
     }
-
+    // ko dung toi
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -192,36 +223,7 @@ public class MainActivity2 extends AppCompatActivity {
                     ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                     mVoiceInputTv.setText(result.get(0));
                 }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("đọc")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity2.class);
-                    startActivity(intent);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("ngày và giờ")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity4.class);
-                    startActivity(intent);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("phần trăm pin")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity6.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("vị trí")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity8.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thời tiết")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity5.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                } else {
-                    textToSpeech.speak("Không hiểu, hãy vuốt sang phải và nói lại", TextToSpeech.QUEUE_FLUSH, null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("máy tính")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity3.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                } else if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thoát")) {
+                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thoát")) {
                     finish();
                 } else {
                     textToSpeech.speak("Không hiểu, hãy vuốt sang phải và nói lại", TextToSpeech.QUEUE_FLUSH, null);
@@ -243,7 +245,7 @@ public class MainActivity2 extends AppCompatActivity {
                 break;
         }
     }
-
+    /*
     public boolean onKeyDown(int keyCode, @Nullable KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             textToSpeech.speak("Bạn đang ở trong menu chính. Hãy vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null);
@@ -254,6 +256,8 @@ public class MainActivity2 extends AppCompatActivity {
         }
         return true;
     }
+     */
+    //thay the r
 
     public void onPause() {
         if (textToSpeech != null) {

@@ -24,7 +24,7 @@ public class GetAllData extends IntentService {
     public GetAllData() {
         super(IDENTIFIER);
     }
-
+    //xu ly ngoai le dâta
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         String msg;
@@ -33,6 +33,8 @@ public class GetAllData extends IntentService {
             Log.e("GetAddressIntentService", "Không nhận được giọng nói, không thể xử lý yêu cầu tiếp theo");
             return;
         }
+
+
         Location location = intent.getParcelableExtra("add_location");
         if (location == null) {
             msg = "Không có vị trí, không thể tiếp tục mà không có vị trí";
@@ -40,6 +42,8 @@ public class GetAllData extends IntentService {
             sendResultsToReceiver(0, msg);
             return;
         }
+
+
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         List<Address> addresses = null;
         try {

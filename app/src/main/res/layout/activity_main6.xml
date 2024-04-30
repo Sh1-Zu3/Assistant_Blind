@@ -5,9 +5,15 @@
     android:layout_width = "match_parent"
     android:layout_height = "match_parent"
     tools:context = ".MainActivity6"
-    android:background="@drawable/rushikesh"
+    android:background="@color/white"
     android:gravity = "center"
     android:orientation = "vertical">
+    <ImageView
+        android:layout_width="385dp"
+        android:layout_height="416dp"
+        android:layout_centerInParent="true"
+        android:scaleType="centerCrop"
+        android:src="@drawable/icon_battery" />
 
     <TextView
         android:id="@+id/text"
@@ -17,5 +23,5 @@
         android:textColor="@color/black"
         android:textStyle="bold"
         android:textAlignment="center"
-        android:textSize="20dp" />
+        android:textSize="25dp" />
 </LinearLayout>

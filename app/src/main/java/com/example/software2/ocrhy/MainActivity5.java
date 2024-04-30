@@ -2,6 +2,7 @@ package com.example.software2.ocrhy;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,6 +10,7 @@ import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -46,6 +48,12 @@ public class MainActivity5 extends AppCompatActivity {
     String currentTime, dateOutput;
     String cityEntered;
 
+    float x1, x2, y1, y2;
+    private static final int CLICK_INTERVAL = 1000; // Thời gian giữa các lần nhấn (ms)
+    private static final int NUM_CLICKS_TO_EXIT = 3; // Số lần nhấn để thoát ứng dụng
+    private int numClicks = 0; // Biến đếm số lần nhấn
+    private long lastClickTime = 0; // Thời gian của lần nhấn cuối cùng
+    private String tmp="";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,14 +77,14 @@ public class MainActivity5 extends AppCompatActivity {
         textToSpeech = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.getDefault());
-                Toast.makeText(MainActivity5.this, "Chạm vào màn hình và nói tên thành phố", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity5.this, "vuốt sang trái và nói tên thành phố,vuốt sang phải để nghe lại", Toast.LENGTH_SHORT).show();
                 textToSpeech.speak("Hãy nói tên thành phố.", TextToSpeech.QUEUE_FLUSH, null);
                 textToSpeech.setSpeechRate(1f);
             }
             new Handler(Looper.getMainLooper()).postDelayed(() -> voice_to_text(), 2000);
         });
 
-        voiceBtn.setOnClickListener(view -> voice_to_text());
+        //voiceBtn.setOnClickListener(view -> voice_to_text());
     }
 
     private void voice_to_text() {
@@ -91,6 +99,46 @@ public class MainActivity5 extends AppCompatActivity {
         } catch (ActivityNotFoundException e) {
             // Xử lý nếu thiết bị không hỗ trợ nhận giọng nói
         }
+    }
+
+    public boolean onTouchEvent(MotionEvent touchEvent) {
+
+        switch (touchEvent.getAction()) {
+
+            case MotionEvent.ACTION_DOWN:
+                x1 = touchEvent.getX();
+                y1 = touchEvent.getY();
+                break;
+            case MotionEvent.ACTION_UP:
+                x2 = touchEvent.getX();
+                y2 = touchEvent.getY();
+                if (x1 < x2) {
+                    numClicks=0;
+                    textToSpeech.speak(tmp, TextToSpeech.QUEUE_FLUSH, null);
+                }
+                if (x1 > x2) {
+                    numClicks=0;
+                    voice_to_text();
+                }
+                break;
+        }
+        if (touchEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_INTERVAL) {
+                numClicks++;
+                if (numClicks >= NUM_CLICKS_TO_EXIT) {
+                    // Trở về MainActivity
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
+                }
+            } else {
+                numClicks = 1;
+            }
+            lastClickTime = currentTime;
+        }
+        return false;
     }
 
     @Override
@@ -112,36 +160,8 @@ public class MainActivity5 extends AppCompatActivity {
     private void handleVoiceInput() {
         // Xử lý logic dựa trên giọng nói từ người dùng
         cityEntered = cityInput.getText().toString().trim();
-
-        if (cityEntered.equalsIgnoreCase("đọc")) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity2.class);
-            startActivity(intent);
-        } else if (cityEntered.equalsIgnoreCase("màn hình chính")) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-            startActivity(intent);
-        } else if (cityEntered.equalsIgnoreCase("vị trí")) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity8.class);
-            startActivity(intent);
-            cityInput.setText(null);
-        } else if (cityEntered.equalsIgnoreCase("phần trăm pin")) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity6.class);
-            startActivity(intent);
-            cityInput.setText(null);
-        } else if (cityEntered.equalsIgnoreCase("ngày và giờ")) {
-            onDestroy();
-            Intent intent = new Intent(getApplicationContext(), MainActivity4.class);
-            startActivity(intent);
-            cityInput.setText(null);
-        } else if (cityEntered.equalsIgnoreCase("máy tính")) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity3.class);
-            startActivity(intent);
-        } else if (cityEntered.equalsIgnoreCase("thoát")) {
-            onPause();
-            finishAffinity();
-        } else {
-            // Xử lý khi tên thành phố được nói ra
-            api_url(cityEntered);
-        }
+        // Xử lý khi tên thành phố được nói ra
+        api_url(cityEntered);
     }
 
     public void api_url(String citySearch) {
@@ -189,8 +209,18 @@ public class MainActivity5 extends AppCompatActivity {
         cityInput.setText(cityEntered);
         cityInput.getText().toString();
 
-        textToSpeech.speak("Nhiệt độ ở thành phố " + cityEntered.replaceAll("read", "") + "là " + temperature, TextToSpeech.QUEUE_FLUSH, null);
-        textToSpeech.speak("Chạm vào màn hình và nói tên thành phố hoặc nói điều bạn muốn", TextToSpeech.QUEUE_ADD, null);
+        int temp = Integer.parseInt(temperature.replaceAll("°C", ""));
+        if (temp < 27) {
+            // Nhiệt độ dưới 27°C, có khả năng mưa
+            description = ". Có khả năng mưa.";
+        } else {
+            // Nhiệt độ từ 27°C trở lên, không có khả năng mưa
+            description = ". Không có khả năng mưa.";
+        }
+
+        textToSpeech.speak("Nhiệt độ ở thành phố " + cityEntered.replaceAll("read", "") + "là " + temperature + description, TextToSpeech.QUEUE_FLUSH, null);
+        tmp = "Nhiệt độ ở thành phố " + cityEntered.replaceAll("read", "") + "là " + temperature + description;
+        textToSpeech.speak("vuốt sang trái và nói tên thành phố,vuốt sang phải để nghe lại, nhấn ba lần vào màn hình để về menu chính", TextToSpeech.QUEUE_ADD, null);
 
         weatherStatusText.setText(description);
         timeTextView.setText(currentTime);
@@ -257,15 +287,6 @@ public class MainActivity5 extends AppCompatActivity {
         }
     }
 
-    public boolean onKeyDown(int keyCode, @Nullable KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-            startActivity(intent);
-            final Handler handler = new Handler(Looper.getMainLooper());
-            handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
-        }
-        return true;
-    }
 
     public void onDestroy() {
         if (cityInput.getText().toString().equalsIgnoreCase("exit")) {

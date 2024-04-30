@@ -8,9 +8,9 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,6 +27,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity8 extends AppCompatActivity {
@@ -38,6 +40,10 @@ public class MainActivity8 extends AppCompatActivity {
     private Location currentLocation;
     private LocationCallback locationCallback;
     private TextToSpeech textToSpeech;
+    private static final int CLICK_INTERVAL = 1000;
+    private static final int NUM_CLICKS_TO_EXIT = 3;
+    private int numClicks = 0;
+    private long lastClickTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +55,7 @@ public class MainActivity8 extends AppCompatActivity {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.getDefault());
                 textToSpeech.setSpeechRate(1f);
-                textToSpeech.speak("Vuốt sang phải để lấy vị trí hiện tại và vuốt sang trái để quay lại menu chính", TextToSpeech.QUEUE_FLUSH, null);
+                textToSpeech.speak("Vuốt sang phải để lấy vị trí hiện tại và nhấn 3 lần vào màn hình để trở về menu chính", TextToSpeech.QUEUE_FLUSH, null);
             }
         });
 
@@ -80,17 +86,64 @@ public class MainActivity8 extends AppCompatActivity {
         }
     }
 
-    @SuppressWarnings("MissingPermission")
     private void getAddress() {
         if (!Geocoder.isPresent()) {
             Toast.makeText(MainActivity8.this, "Không thể tìm địa chỉ hiện tại, ",
                     Toast.LENGTH_SHORT).show();
             return;
         }
-        Intent intent = new Intent(this, GetAllData.class);
-        intent.putExtra("add_receiver", addressResultReceiver);
-        intent.putExtra("add_location", currentLocation);
-        startService(intent);
+        if (currentLocation == null) {
+            Toast.makeText(MainActivity8.this, "Không có vị trí hiện tại.",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Geocoder geocoder = new Geocoder(MainActivity8.this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(currentLocation.getLatitude(), currentLocation.getLongitude(), 1);
+            if (addresses != null && addresses.size() > 0) {
+                Address address = addresses.get(0);
+                StringBuilder addressInfoBuilder = new StringBuilder();
+
+                String street = address.getThoroughfare(); // Tên đường
+                if (street != null) {
+                    addressInfoBuilder.append("Đường ").append(street).append(", ");
+                }
+
+                String ward = address.getSubLocality(); // Xã
+                if (ward != null) {
+                    addressInfoBuilder.append(ward).append(", ");
+                }
+
+                String district = address.getSubAdminArea(); // Huyện
+                if (district != null) {
+                    addressInfoBuilder.append(district).append(", ");
+                }
+
+                String city = address.getAdminArea(); // Tỉnh
+                if (city != null) {
+                    addressInfoBuilder.append(city);
+                }
+
+                String addressInfo = addressInfoBuilder.toString();
+
+                if (!addressInfo.isEmpty()) {
+                    // Hiển thị thông tin địa chỉ lên TextView
+                    currentAddTv.setText(addressInfo);
+
+                    // Đọc thông tin địa chỉ bằng TextToSpeech
+                    textToSpeech = new TextToSpeech(MainActivity8.this, status -> {
+                        if (status != TextToSpeech.ERROR) {
+                            textToSpeech.setLanguage(Locale.getDefault());
+                            textToSpeech.setSpeechRate(1f);
+                            textToSpeech.speak(addressInfo, TextToSpeech.QUEUE_FLUSH, null);
+                        }
+                    });
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -138,20 +191,34 @@ public class MainActivity8 extends AppCompatActivity {
             case MotionEvent.ACTION_UP:
                 x2 = touchEvent.getX();
                 if (x1 < x2) {
+                    numClicks=0;
                     String data = currentAddTv.getText().toString();
                     if (data.isEmpty()) {
                         textToSpeech.speak("Vui lòng bật vị trí", TextToSpeech.QUEUE_FLUSH, null);
                     } else {
                         textToSpeech.speak("Vị trí hiện tại của bạn là " + data, TextToSpeech.QUEUE_FLUSH, null);
-                        textToSpeech.speak("Vuốt sang phải để nghe lại hoặc vuốt sang trái để quay lại menu chính", TextToSpeech.QUEUE_ADD, null);
+                        textToSpeech.speak("Vuốt sang phải để nghe lại hoặc nhấn 3 lần vào màn hình để trở về menu chính", TextToSpeech.QUEUE_ADD, null);
                     }
                 }
                 if (x1 > x2) {
-                    Intent i = new Intent(MainActivity8.this, MainActivity.class);
-                    startActivity(i);
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null));
+                    numClicks=0;
                 }
+        }
+        if (touchEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_INTERVAL) {
+                numClicks++;
+                if (numClicks >= NUM_CLICKS_TO_EXIT) {
+                    // Trở về MainActivity
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
+                }
+            } else {
+                numClicks = 1;
+            }
+            lastClickTime = currentTime;
         }
         return false;
     }
@@ -166,5 +233,15 @@ public class MainActivity8 extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         fusedLocationClient.removeLocationUpdates(locationCallback);
+    }
+    
+    @Override
+    public void onDestroy() {
+        //huy tts
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
+        }
+        super.onDestroy();
     }
 }

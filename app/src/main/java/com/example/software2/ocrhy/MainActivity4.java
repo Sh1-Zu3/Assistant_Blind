@@ -22,7 +22,10 @@ public class MainActivity4 extends AppCompatActivity {
     private TextToSpeech textToSpeech;
     private TextView format7;
     float x1, x2, y1, y2;
-
+    private static final int CLICK_INTERVAL = 1000; // Thời gian giữa các lần nhấn (ms)
+    private static final int NUM_CLICKS_TO_EXIT = 3; // Số lần nhấn để thoát ứng dụng
+    private int numClicks = 0; // Biến đếm số lần nhấn
+    private long lastClickTime = 0; // Thời gian của lần nhấn cuối cùng
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +51,7 @@ public class MainActivity4 extends AppCompatActivity {
                 textToSpeech.setLanguage(Locale.getDefault());
                 textToSpeech.setSpeechRate(1f);
                 textToSpeech.speak(finalDateTime, TextToSpeech.QUEUE_FLUSH, null);
-                textToSpeech.speak("Chạm vào màn hình và vuốt sang phải để nghe lại, vuốt sang trái để quay lại menu chính", TextToSpeech.QUEUE_ADD, null);
+                textToSpeech.speak("Chạm vào màn hình và vuốt sang phải để nghe lại, nhấn 3 lần vào màn hình để trở về menu chính", TextToSpeech.QUEUE_ADD, null);
             }
         });
     }
@@ -65,14 +68,11 @@ public class MainActivity4 extends AppCompatActivity {
                 x2 = touchEvent.getX();
                 y2 = touchEvent.getY();
                 if (x1 > x2) {
-                    final Handler handler = new Handler(Looper.getMainLooper());
-                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
-
-                    Intent intent = new Intent(MainActivity4.this, MainActivity.class);
-                    startActivity(intent);
+                    numClicks=0;
                 }
 
                 if (x1 < x2) {
+                    numClicks=0;
                     String dateTime = null;
                     Calendar calendar = null;
                     SimpleDateFormat simpleDateFormat;
@@ -89,8 +89,24 @@ public class MainActivity4 extends AppCompatActivity {
 
                     String finalDateTime = dateTime;
                     textToSpeech.speak(finalDateTime, TextToSpeech.QUEUE_FLUSH, null);
-                    textToSpeech.speak("Chạm vào màn hình và vuốt sang phải để nghe lại, vuốt sang trái để quay lại menu chính", TextToSpeech.QUEUE_ADD, null);
+                    textToSpeech.speak("Chạm vào màn hình và vuốt sang phải để nghe lại, nhấn vào màn hình 3 lần để trở về menu chính", TextToSpeech.QUEUE_ADD, null);
                 }
+        }
+        if (touchEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_INTERVAL) {
+                numClicks++;
+                if (numClicks >= NUM_CLICKS_TO_EXIT) {
+                    // Trở về MainActivity
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
+                }
+            } else {
+                numClicks = 1;
+            }
+            lastClickTime = currentTime;
         }
 
         return false;

@@ -13,16 +13,11 @@
         android:layout_centerHorizontal="true"
         android:background="@color/black"
         android:gravity="center"
-        android:text="OCR READER FOR VISUALLY IMPARED PEOPLES"
+        android:text="vuốt sang trái để nhận diện văn bản"
         android:textColor="@color/white"
         android:textSize="30dp"
         android:textStyle="bold"
 
         tools:layout_editor_absoluteX="8dp" />
-
-
-
-
-
 
 </RelativeLayout>

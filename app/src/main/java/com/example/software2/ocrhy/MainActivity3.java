@@ -37,6 +37,11 @@ public class MainActivity3 extends AppCompatActivity {
     // Biểu thức hiện tại có lỗi hay không
     private boolean stateError;
     private final int REQ_CODE_SPEECH_INPUT = 100;
+    private static final int CLICK_INTERVAL = 1000;
+    private int numClicks = 0; // Biến đếm số lần nhấn
+    private long lastClickTime = 0; // Thời gian của lần nhấn cuối cùng
+    private float startX,startY;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,13 +52,12 @@ public class MainActivity3 extends AppCompatActivity {
         txtScreen = findViewById(R.id.txtScreen);
         txtInput = findViewById(R.id.txtInput);
 
-        ImageButton button2 = findViewById(R.id.btnSpeak);
         textToSpeech = new TextToSpeech(getApplicationContext(), status -> {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.getDefault());
                 textToSpeech.setSpeechRate(1f);
-                Toast.makeText(MainActivity3.this, "Mở máy tính... Chạm vào màn hình và nói phép tính. Nhấn nút tăng âm lượng để quay lại menu chính", Toast.LENGTH_SHORT).show();
-                textToSpeech.speak("Mở máy tính... Chạm vào màn hình và nói phép tính hoặc nói gì bạn muốn", TextToSpeech.QUEUE_FLUSH, null);
+                Toast.makeText(MainActivity3.this, "vuốt sang trái và nói phép tính. Nhấn 3 lần vào màn hình để quay lại menu chính", Toast.LENGTH_SHORT).show();
+                textToSpeech.speak("vuốt sang trái và nói phép tính. Nhấn 3 lần vào màn hình để quay lại menu chính", TextToSpeech.QUEUE_FLUSH, null);
             }
         });
     }
@@ -96,18 +100,43 @@ public class MainActivity3 extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.btnSpeak).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (stateError) {
-                    txtScreen.setText("Thử lại");
-                    stateError = false;
-                } else {
+
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent touchEvent) {
+        switch (touchEvent.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                startX = touchEvent.getX();
+                startY = touchEvent.getY();
+                break;
+            case MotionEvent.ACTION_UP:
+                float endX = touchEvent.getX();
+                float endY = touchEvent.getY();
+
+                if (startX > endX && Math.abs(startX - endX) > Math.abs(startY - endY)) {
+                    numClicks=0;
                     promptSpeechInput();
+                } else {
+                    long now = System.currentTimeMillis();
+                    if (now - lastClickTime < CLICK_INTERVAL) {
+                        numClicks++;
+                    } else {
+                        numClicks = 1;
+                    }
+                    lastClickTime = now;
+
+                    // Nếu nhấn 3 lần, chuyển về MainActivity
+                    if (numClicks >= 3) {
+                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                        startActivity(intent);
+                        numClicks = 0;
+                    }
                 }
                 lastNumeric = true;
-            }
-        });
+                break;
+        }
+        return super.onTouchEvent(touchEvent);
     }
 
     private void promptSpeechInput() {
@@ -134,7 +163,7 @@ public class MainActivity3 extends AppCompatActivity {
                 txtScreen.setText(Double.toString(result).replaceAll("\\.0*$", ""));
                 Toast.makeText(MainActivity3.this, "Kết quả là", Toast.LENGTH_SHORT).show();
                 textToSpeech.speak("Kết quả là " + txtScreen.getText().toString(), TextToSpeech.QUEUE_FLUSH, null);
-                textToSpeech.speak("Chạm vào màn hình và nói điều bạn muốn", TextToSpeech.QUEUE_ADD,null);
+                textToSpeech.speak("vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_ADD,null);
                 textToSpeech.setSpeechRate(1f);
             } catch (Exception e) {
                 txtScreen.setText("Lỗi, chạm vào màn hình và nói lại");
@@ -155,38 +184,12 @@ public class MainActivity3 extends AppCompatActivity {
                     String change = result.toString();
                     txtInput.setText(result.get(0));
 
-                    // Xử lý các lệnh từ giọng nói
-                    if (txtInput.getText().toString().equalsIgnoreCase("đọc")) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity2.class);
-                        startActivity(intent);
-                    }
-                    if (txtInput.getText().toString().equalsIgnoreCase("thời tiết")) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity5.class);
-                        startActivity(intent);
-                        txtInput.setText(null);
-                    } else {
-                        textToSpeech.speak("Không hiểu, chạm vào màn hình và nói lại", TextToSpeech.QUEUE_FLUSH, null);
-                    }
-                    if (txtInput.getText().toString().equalsIgnoreCase("ngày và giờ")) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity4.class);
-                        startActivity(intent);
-                    }
-                    if (txtInput.getText().toString().equalsIgnoreCase("vị trí")) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity8.class);
-                        startActivity(intent);
-                        txtInput.setText(null);
-                    }
-                    if (txtInput.getText().toString().equalsIgnoreCase("phần trăm pin")) {
-                        Intent intent = new Intent(getApplicationContext(), MainActivity6.class);
-                        startActivity(intent);
-                        txtInput.setText(null);
-                    }
-                    else if(txtInput.getText().toString().equalsIgnoreCase("thoát")) {
+                    if(txtInput.getText().toString().equalsIgnoreCase("thoát")) {
                         finishAffinity();
                         super.onPause();
                     }
                     else {
-                        textToSpeech.speak("Không hiểu, chạm vào màn hình và nói lại", TextToSpeech.QUEUE_FLUSH, null);
+                        textToSpeech.speak("Không hiểu, vuốt sang trái và nói lại", TextToSpeech.QUEUE_FLUSH, null);
                     }
 
                     // Chuyển đổi tiếng Anh sang toán tử và số
@@ -221,33 +224,14 @@ public class MainActivity3 extends AppCompatActivity {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent touchEvent) {
-        switch (touchEvent.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                touchEvent.getX();
-                float y1 = touchEvent.getY();
-                break;
-            case MotionEvent.ACTION_UP:
-                float x2 = touchEvent.getX();
-                float x1 = touchEvent.getX();
-                float y2 = touchEvent.getY();
-                if (x1 < x2) {
-                    Intent i = new Intent(MainActivity3.this, MainActivity.class);
-                    startActivity(i);
-                } else {
-                    if (x1 > x2) {
-                        Intent i = new Intent(MainActivity3.this, MainActivity.class);
-                        startActivity(i);
-                    }
-                }
-                break;
+    protected void onDestroy() {
+        if (txtInput.getText().toString().equals("exit")){
+            finish();
         }
-        return false;
+        super.onDestroy();
     }
-
-    @Override
     public boolean onKeyDown(int keyCode, @Nullable KeyEvent event) {
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             textToSpeech.speak("Bạn đang ở trong menu chính. Hãy vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null);
             Intent intent = new Intent(getApplicationContext(), MainActivity.class);
             startActivity(intent);
@@ -256,15 +240,6 @@ public class MainActivity3 extends AppCompatActivity {
         }
         return true;
     }
-
-    @Override
-    protected void onDestroy() {
-        if (txtInput.getText().toString().equals("exit")){
-            finish();
-        }
-        super.onDestroy();
-    }
-
     @Override
     protected void onPause() {
         if (textToSpeech != null) {

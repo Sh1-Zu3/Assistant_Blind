@@ -3,6 +3,8 @@ package com.example.software2.ocrhy;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.view.MotionEvent;
@@ -18,22 +20,48 @@ public class MainActivity7 extends AppCompatActivity {
     private static int firstTime = 0;
     private TextView mVoiceInputTv;
     float x1, x2, y1, y2;
-    private TextView mSpeakBtn;
+    private String tmp = "";
+
+    private String[] instructionArray;
+    private int currentIndex = 0;
 
     private static TextToSpeech textToSpeech;
+    private static final int CLICK_INTERVAL = 1000; // oăkfpaokmfpawf
+    private static final int NUM_CLICKS_TO_EXIT = 3; // olawjfoa
+    private int numClicks = 0;
+    private long lastClickTime = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main7);
+        //loi thoai
+        instructionArray = new String[]{
+                "1.Tôi có thể đọc báo cho bạn nghe, có một số chủ đề như du lịch, giáo dục, khoa học,thế giới,giải trí..",
+                "2.Tôi có thể mở nhạc cho bạn nghe",
+                "3.Tôi có thể cho bạn biết dung lượng pin hiện tại, chỉ cần nói phần trăm pin",
+                "4.Tôi có thể cho bạn biết ngày và giờ",
+                "5.Tôi có thể đọc được chữ thông qua camera qua cho bạn, chỉ cần nói bật camera",
+                "6.Tôi có thể tính toán các phép tính, chỉ cần nói máy tính",
+                "7.Tôi có thể cho bạn biết vị trí hiện tại của mình",
+                "8.Tôi có thể cho bạn biết thời tiết hiện tại",
+                "9.Tôi có thể gọi điện thoại khi bạn cần",
+                "10.Tôi có thể trả lời câu hỏi của bạn, chỉ cần nói tôi có một số câu hỏi",
+                "Tôi đã trình bày cho bạn những chức năng mà tôi có thể thực hiện, bây giờ chỉ cần ấn 3 lần vào màn hình để về menu chính"
+        };
+
         textToSpeech = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.setLanguage(Locale.getDefault());
                 textToSpeech.setSpeechRate(1f);
-                textToSpeech.speak("Vuốt sang trái và nói điều bạn muốn. Nói 'đọc' để đọc, 'máy tính' để sử dụng máy tính, 'thời tiết' để xem thời tiết, 'vị trí' để xem vị trí hiện tại, 'phần trăm pin' để xem dung lượng pin, 'ngày và giờ' để xem thời gian và ngày. Nói 'thoát' để đóng ứng dụng.", TextToSpeech.QUEUE_FLUSH, null);
+                textToSpeech.speak("Bạn đang ở trong chế độ hướng dẫn, hãy vuốt qua trái để nghe hướng dẫn, vuốt qua phải để nghe lại ", TextToSpeech.QUEUE_FLUSH, null);
+                tmp = "Bạn đang ở trong chế độ hướng dẫn, hãy vuốt qua trái để nghe hướng dẫn, vuốt qua phải để nghe lại";
             }
         });
+
         mVoiceInputTv = findViewById(R.id.voiceInput);
+
     }
 
     public boolean onTouchEvent(MotionEvent touchEvent) {
@@ -46,75 +74,43 @@ public class MainActivity7 extends AppCompatActivity {
                 x2 = touchEvent.getX();
                 y2 = touchEvent.getY();
                 if (x1 > x2) {
-                    textToSpeech.stop();
-                    startVoiceInput();
+                    numClicks=0;
+                    // sieu cap thuat toan
+                    textToSpeech.speak(instructionArray[currentIndex], TextToSpeech.QUEUE_FLUSH, null);
+                    tmp = instructionArray[currentIndex];
+                    currentIndex = (currentIndex + 1) % instructionArray.length;
+                }
+                if (x1 < x2) {
+                    numClicks=0;
+                    textToSpeech.speak(tmp, TextToSpeech.QUEUE_FLUSH, null);
                 }
                 break;
+        }
+        if (touchEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_INTERVAL) {
+                numClicks++;
+                if (numClicks >= NUM_CLICKS_TO_EXIT) {
+                    //return ne
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    final Handler handler = new Handler(Looper.getMainLooper());
+                    handler.postDelayed(() -> textToSpeech.speak("Bạn đang ở trong menu chính. Vuốt sang trái và nói điều bạn muốn", TextToSpeech.QUEUE_FLUSH, null), 1000);
+                }
+            } else {
+                numClicks = 1;
+            }
+            lastClickTime = currentTime;
         }
         return false;
     }
 
-    private void startVoiceInput() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Xin chào, bạn cần giúp gì?");
-        try {
-            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
-        } catch (ActivityNotFoundException a) {
-            a.printStackTrace();
-        }
-    }
-
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_CODE_SPEECH_INPUT) {
-            if (resultCode == RESULT_OK && null != data) {
-                ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                mVoiceInputTv.setText(result.get(0));
-
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("đọc")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity2.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("máy tính")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity3.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("ngày và gờ")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity4.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thời tiết")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity5.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("phần trăm pin")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity6.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("vị trí")) {
-                    Intent intent = new Intent(getApplicationContext(), MainActivity8.class);
-                    startActivity(intent);
-                    mVoiceInputTv.setText(null);
-                }
-                if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thoát")) {
-                    onPause();
-                    finishAffinity();
-                }
-            }
-        }
-    }
-
     public void onDestroy() {
-        if (mVoiceInputTv.getText().toString().equalsIgnoreCase("thoát")) {
-            finish();
+        //huy tts
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
         }
         super.onDestroy();
     }

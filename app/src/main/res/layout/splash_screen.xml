@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <ImageView
+        android:id="@+id/imageViewIcon"
+        android:layout_width="312dp"
+        android:layout_height="334dp"
+        android:layout_centerInParent="true"
+        android:src="@drawable/home_removebg" /> <!-- Thay thế ic_launcher bằng tên biểu tượng của bạn -->
+
+    <TextView
+        android:id="@+id/textViewAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/imageViewIcon"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:text="Blind helper"
+        android:textColor="?android:attr/colorActivatedHighlight"
+        android:textSize="30sp" />
+
+</RelativeLayout>
